@@ -265,30 +265,51 @@
     pointer-events: none;
   }
 
-  /* Mobile compatibility with increased opacity for better visibility */
+  /* Mobile compatibility with improved centering and line breaks */
   @media (max-width: 768px) {
     .lyric {
       font-size: 1.6rem;
-      max-width: 95vw;
-      padding: 0 10px;
+      max-width: 90vw;
+      padding: 0 5vw;
+      left: 0 !important;
+      right: 0 !important;
+      margin: 0 auto;
+      text-align: center !important;
+      white-space: normal;
+      word-wrap: break-word;
+      hyphens: auto;
+      line-height: 1.3;
     }
+    
+    .lyric.left {
+      justify-content: center !important;
+      transform: none !important;
+    }
+    
+    .lyric.right {
+      justify-content: center !important;
+      transform: none !important;
+    }
+    
     .lyric.center {
-      font-size: 2.8rem !important;
+      font-size: 2.4rem !important;
+      max-width: 85vw;
+      padding: 0 7.5vw;
     }
     .lyric.center::after {
       width: 200px;
       height: 240px;
-      opacity: 0.9; /* Increased opacity for mobile */
+      opacity: 0.9;
     }
     .emoji-background {
       font-size: 3rem;
-      opacity: 0.25; /* Increased opacity for mobile visibility */
+      opacity: 0.25;
     }
     .emoji-line {
       height: 14vh;
     }
     
-    /* Mobile-specific opacity enhancements */
+    /* Mobile-specific slide animations - centered */
     @keyframes slideInLeftMobile {
       0% { 
         transform: translateX(-100vw) rotateY(90deg); 
@@ -296,17 +317,17 @@
         filter: blur(10px);
       }
       20% { 
-        transform: translateX(5vw) rotateY(0deg); 
-        opacity: 0.95; /* Slightly higher opacity for mobile */
+        transform: translateX(0) rotateY(0deg); 
+        opacity: 0.95;
         filter: blur(0px);
       }
       80% { 
-        transform: translateX(5vw) rotateY(0deg); 
+        transform: translateX(0) rotateY(0deg); 
         opacity: 0.95; 
         filter: blur(0px);
       }
       100% { 
-        transform: translateX(-100vw) rotateY(-90deg); 
+        transform: translateX(100vw) rotateY(-90deg); 
         opacity: 0; 
         filter: blur(10px);
       }
@@ -319,17 +340,17 @@
         filter: blur(10px);
       }
       20% { 
-        transform: translateX(-5vw) rotateY(0deg); 
-        opacity: 0.95; /* Slightly higher opacity for mobile */
+        transform: translateX(0) rotateY(0deg); 
+        opacity: 0.95;
         filter: blur(0px);
       }
       80% { 
-        transform: translateX(-5vw) rotateY(0deg); 
+        transform: translateX(0) rotateY(0deg); 
         opacity: 0.95; 
         filter: blur(0px);
       }
       100% { 
-        transform: translateX(100vw) rotateY(90deg); 
+        transform: translateX(-100vw) rotateY(90deg); 
         opacity: 0; 
         filter: blur(10px);
       }
@@ -342,7 +363,7 @@
         filter: blur(5px);
       }
       15% { 
-        opacity: 0.98; /* Higher opacity for mobile */
+        opacity: 0.98;
         transform: translateY(-50%) scale(1);
         filter: blur(0px);
       }
@@ -364,7 +385,7 @@
         transform: translateX(-50%) scale(0.8);
       }
       9% { 
-        opacity: 0.9; /* Higher opacity for mobile */
+        opacity: 0.9;
         transform: translateX(-50%) scale(1);
       }
       91% { 
@@ -394,21 +415,22 @@
 
   @media (max-width: 480px) {
     .lyric {
-      font-size: 1.3rem;
-      max-width: 98vw;
-      padding: 0 5px;
+      font-size: 1.4rem;
+      max-width: 85vw;
+      padding: 0 7.5vw;
+      line-height: 1.4;
     }
     .lyric.center {
-      font-size: 2.2rem !important;
+      font-size: 2rem !important;
     }
     .lyric.center::after {
       width: 150px;
       height: 180px;
-      opacity: 0.95; /* Even higher opacity for smaller screens */
+      opacity: 0.95;
     }
     .emoji-background {
       font-size: 2.5rem;
-      opacity: 0.3; /* Further increased for smaller screens */
+      opacity: 0.3;
     }
     .emoji-line {
       height: 12vh;
@@ -417,14 +439,15 @@
 
   @media (max-width: 360px) {
     .lyric {
-      font-size: 1.1rem;
+      font-size: 1.2rem;
+      line-height: 1.5;
     }
     .lyric.center {
-      font-size: 1.8rem !important;
+      font-size: 1.7rem !important;
     }
     .emoji-background {
       font-size: 2rem;
-      opacity: 0.35; /* Maximum opacity for very small screens */
+      opacity: 0.35;
     }
   }
 </style>
@@ -451,7 +474,7 @@
   let currentEmojiBackground = null;
   let emojisEndTime = null;
 
-  // Enhanced lyrics with emoji mappings
+  // Enhanced lyrics with emoji mappings and line breaks for mobile
   const lyrics = [
     { 
       time: 2.20, 
@@ -488,6 +511,26 @@
       color: "gradient"
     }
   ];
+
+  // Function to add line breaks for mobile
+  function formatTextForMobile(text) {
+    if (window.innerWidth <= 768) {
+      // Add line breaks for better mobile display
+      if (text.includes("drivin' me out")) {
+        return text.replace("drivin' me out", "drivin' me<br>out");
+      }
+      if (text.includes("hard for me")) {
+        return text.replace("hard for me", "hard for<br>me");
+      }
+      if (text.includes("get it out")) {
+        return text.replace("get it out", "get it<br>out");
+      }
+      if (text.includes("kiss her, love")) {
+        return text.replace("kiss her, love", "kiss her,<br>love");
+      }
+    }
+    return text;
+  }
 
   // Instagram/App close function
   function attemptToClose() {
@@ -568,9 +611,10 @@
       `;
     }
     
-    // Add text
+    // Add text with mobile formatting
     const textContainer = document.createElement('span');
-    textContainer.textContent = lyric.text;
+    const formattedText = formatTextForMobile(lyric.text);
+    textContainer.innerHTML = formattedText;
     el.appendChild(textContainer);
     
     layer.appendChild(el);
