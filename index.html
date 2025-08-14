@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Ruya</title>
+<style>
+  body {
+    margin: 0;
+    background: black;
+    overflow: hidden;
+    font-family: 'Courier New', 'Lucida Console', Monaco, monospace;
+  }
+
+  .stage {
+    position: fixed;
+    inset: 0;
+    background: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    overflow: hidden;
+  }
+
+  @keyframes smoothPulse {
+    0%, 100% { 
+      transform: scale(1) rotate(0deg); 
+      filter: brightness(1) saturate(1);
+    }
+    25% { 
+      transform: scale(1.02) rotate(0.5deg); 
+      filter: brightness(1.1) saturate(1.1);
+    }
+    50% { 
+      transform: scale(1.03) rotate(0deg); 
+      filter: brightness(1.15) saturate(1.2);
+    }
+    75% { 
+      transform: scale(1.02) rotate(-0.5deg); 
+      filter: brightness(1.1) saturate(1.1);
+    }
+  }
+
+  .stage.pulsing {
+    animation: smoothPulse 3s ease-in-out infinite;
+  }
+
+  .lyrics-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .lyric {
+    position: absolute;
+    font-size: 2.5rem;
+    white-space: nowrap;
+    animation-fill-mode: forwards;
+    opacity: 0;
+    display: flex;
+    align-items: center;
+    text-align: center;
+    text-shadow: 
+      0 0 10px rgba(255, 255, 255, 0.8),
+      0 0 20px rgba(255, 255, 255, 0.5),
+      0 0 30px rgba(255, 255, 255, 0.3),
+      2px 2px 4px rgba(0,0,0,0.8);
+    font-weight: 900;
+    max-width: 90vw;
+    word-wrap: break-word;
+    white-space: normal;
+    filter: drop-shadow(0 0 5px rgba(255,255,255,0.3));
+  }
+
+  .lyric.left {
+    animation: slideInLeft 3s ease forwards;
+    justify-content: flex-start;
+  }
+
+  .lyric.right {
+    animation: slideInRight 3s ease forwards;
+    justify-content: flex-end;
+  }
+
+  @keyframes slideInLeft {
+    0% { 
+      transform: translateX(-100vw) rotateY(90deg); 
+      opacity: 0; 
+      filter: blur(10px);
+    }
+    20% { 
+      transform: translateX(5vw) rotateY(0deg); 
+      opacity: 1; 
+      filter: blur(0px);
+    }
+    80% { 
+      transform: translateX(5vw) rotateY(0deg); 
+      opacity: 1; 
+      filter: blur(0px);
+    }
+    100% { 
+      transform: translateX(-100vw) rotateY(-90deg); 
+      opacity: 0; 
+      filter: blur(10px);
+    }
+  }
+
+  @keyframes slideInRight {
+    0% { 
+      transform: translateX(100vw) rotateY(-90deg); 
+      opacity: 0; 
+      filter: blur(10px);
+    }
+    20% { 
+      transform: translateX(-5vw) rotateY(0deg); 
+      opacity: 1; 
+      filter: blur(0px);
+    }
+    80% { 
+      transform: translateX(-5vw) rotateY(0deg); 
+      opacity: 1; 
+      filter: blur(0px);
+    }
+    100% { 
+      transform: translateX(100vw) rotateY(90deg); 
+      opacity: 0; 
+      filter: blur(10px);
+    }
+  }
+
+  .lyric.center {
+    animation: epicFadeInOut 3s ease forwards;
+    justify-content: center;
+    top: 40% !important;
+    transform: translateY(-50%) !important;
+    font-size: 4rem !important;
+    background: linear-gradient(45deg, #fff, #00ff00, #fff, #00ff00, #ff00ff, #00ffff);
+    background-size: 600% 600%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: epicFadeInOut 3s ease forwards, gradientShift 1.5s ease-in-out infinite;
+    position: relative;
+    z-index: 10;
+  }
+
+  .lyric.center::after {
+    content: '';
+    position: absolute;
+    top: 150%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 250px;
+    height: 300px;
+    background-image: url('poison-image.jpg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    border-radius: 15px;
+    opacity: 0.7;
+    z-index: -1;
+    filter: blur(1px) brightness(0.8);
+    animation: imageScale 5.5s ease forwards;
+  }
+
+  /* Optimized Background emoji system */
+  .emoji-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    font-size: 4rem;
+    opacity: 0.1;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  .emoji-line {
+    position: absolute;
+    width: 200%;
+    height: 16.66vh;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  .emoji-line:nth-child(1) { top: 0%; animation: scrollLeft 12s linear infinite; }
+  .emoji-line:nth-child(2) { top: 16.66%; animation: scrollRight 15s linear infinite; animation-delay: -2s; }
+  .emoji-line:nth-child(3) { top: 33.32%; animation: scrollLeft 10s linear infinite; animation-delay: -4s; }
+  .emoji-line:nth-child(4) { top: 49.98%; animation: scrollRight 13s linear infinite; animation-delay: -1s; }
+  .emoji-line:nth-child(5) { top: 66.64%; animation: scrollLeft 11s linear infinite; animation-delay: -3s; }
+  .emoji-line:nth-child(6) { top: 83.3%; animation: scrollRight 14s linear infinite; animation-delay: -5s; }
+
+  @keyframes scrollLeft {
+    from { transform: translateX(0%); }
+    to { transform: translateX(-50%); }
+  }
+
+  @keyframes scrollRight {
+    from { transform: translateX(-50%); }
+    to { transform: translateX(0%); }
+  }
+
+  @keyframes imageScale {
+    0% { 
+      opacity: 0; 
+      transform: translateX(-50%) scale(0.8);
+    }
+    9% { 
+      opacity: 0.7; 
+      transform: translateX(-50%) scale(1);
+    }
+    91% { 
+      opacity: 0.7; 
+      transform: translateX(-50%) scale(1);
+    }
+    100% { 
+      opacity: 0; 
+      transform: translateX(-50%) scale(0.8);
+    }
+  }
+
+  @keyframes epicFadeInOut {
+    0% { 
+      opacity: 0; 
+      transform: translateY(-50%) scale(0.8);
+      filter: blur(5px);
+    }
+    15% { 
+      opacity: 1; 
+      transform: translateY(-50%) scale(1);
+      filter: blur(0px);
+    }
+    85% { 
+      opacity: 1; 
+      transform: translateY(-50%) scale(1);
+      filter: blur(0px);
+    }
+    100% { 
+      opacity: 0; 
+      transform: translateY(-50%) scale(0.8);
+      filter: blur(5px);
+    }
+  }
+
+  @keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* Particle system */
+  .particle {
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    background: radial-gradient(circle, rgba(255,255,255,0.8), transparent);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* Mobile compatibility */
+  @media (max-width: 768px) {
+    .lyric {
+      font-size: 1.6rem;
+      max-width: 95vw;
+      padding: 0 10px;
+    }
+    .lyric.center {
+      font-size: 2.8rem !important;
+    }
+    .lyric.center::after {
+      width: 200px;
+      height: 240px;
+    }
+    .emoji-background {
+      font-size: 3rem;
+    }
+    .emoji-line {
+      height: 14vh;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .lyric {
+      font-size: 1.3rem;
+      max-width: 98vw;
+      padding: 0 5px;
+    }
+    .lyric.center {
+      font-size: 2.2rem !important;
+    }
+    .lyric.center::after {
+      width: 150px;
+      height: 180px;
+    }
+    .emoji-background {
+      font-size: 2.5rem;
+    }
+    .emoji-line {
+      height: 12vh;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .lyric {
+      font-size: 1.1rem;
+    }
+    .lyric.center {
+      font-size: 1.8rem !important;
+    }
+    .emoji-background {
+      font-size: 2rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <div class="lyrics-layer" id="lyrics-layer"></div>
+</div>
+
+<audio id="audio" src="poison.mp3"></audio>
+
+<script>
+  const audio = document.getElementById('audio');
+  const stage = document.getElementById('stage');
+  const layer = document.getElementById('lyrics-layer');
+
+  let rafId = null;
+  let side = 'left';
+  const shown = new Set();
+  let fallingInterval = null;
+  let fallingStarted = false;
+  let particleInterval = null;
+  let currentEmojiBackground = null;
+
+  // Enhanced lyrics with emoji mappings
+  const lyrics = [
+    { 
+      time: 2.20, 
+      text: "It's drivin' me out of my mind", 
+      duration: 3670, 
+      color: "#ff6b6b",
+      emojis: ["🤯", "😵", "🌀"]
+    },
+    { 
+      time: 6.45, 
+      text: "That's why it's hard for me to find", 
+      duration: 4640, 
+      color: "#4ecdc4",
+      emojis: ["🔍", "❓", "😔"]
+    },
+    { 
+      time: 10.0, 
+      text: "Can't get it out of my head", 
+      duration: 5500, 
+      color: "#45b7d1",
+      emojis: ["🧠", "💭", "🔄"]
+    },
+    { 
+      time: 15.0, 
+      text: "Miss her, kiss her, love her", 
+      duration: 2640, 
+      color: "#ff69b4",
+      emojis: ["💕", "💋", "❤️"]
+    },
+    { 
+      time: 18.0, 
+      text: "That girl is POISON", 
+      duration: 5500, 
+      color: "gradient"
+    }
+  ];
+
+  function showLyric(lyric) {
+    const el = document.createElement('div');
+    
+    // Create background emoji loop for this lyric
+    if (lyric.emojis && lyric.emojis.length > 0) {
+      createEmojiBackground(lyric.emojis, lyric.duration || 3000);
+    }
+    
+    // Special class for POISON
+    if (lyric.text === "That girl is POISON") {
+      el.className = 'lyric center';
+      createCameraShake();
+      startParticleSystem();
+      setTimeout(() => {
+        document.body.style.filter = 'contrast(1.2) saturate(1.3)';
+        setTimeout(() => {
+          document.body.style.filter = '';
+        }, 1000);
+      }, 200);
+    } else {
+      el.className = 'lyric ' + side;
+      side = (side === 'left') ? 'right' : 'left';
+    }
+    
+    // Set animation duration
+    const durationInSeconds = (lyric.duration || 3000) / 1000;
+    el.style.animationDuration = durationInSeconds + 's';
+    
+    // Position lyrics
+    if (lyric.text !== "That girl is POISON") {
+      const minTop = 10;
+      const maxTop = 70;
+      el.style.top = Math.random() * (maxTop - minTop) + minTop + '%';
+    }
+    
+    el.style.width = '100%';
+    el.style.left = '0';
+    
+    // Apply color
+    if (lyric.color && lyric.color !== "gradient") {
+      el.style.color = lyric.color;
+      el.style.textShadow = `
+        0 0 10px ${lyric.color}aa,
+        0 0 20px ${lyric.color}66,
+        0 0 30px ${lyric.color}33,
+        2px 2px 4px rgba(0,0,0,0.8)
+      `;
+    }
+    
+    // Add text
+    const textContainer = document.createElement('span');
+    textContainer.textContent = lyric.text;
+    el.appendChild(textContainer);
+    
+    layer.appendChild(el);
+    
+    setTimeout(() => el.remove(), lyric.duration || 3000);
+  }
+
+  // Optimized emoji background system
+  function createEmojiBackground(emojis, duration) {
+    // Remove any existing emoji background first
+    if (currentEmojiBackground && currentEmojiBackground.parentNode) {
+      currentEmojiBackground.remove();
+    }
+    
+    const emojiLoop = document.createElement('div');
+    emojiLoop.className = 'emoji-background';
+    currentEmojiBackground = emojiLoop;
+    
+    // Create 6 optimized lines (reduced from 8)
+    const emojiString = emojis.join('  ') + '  '; // Add spacing
+    const repeatedEmojis = emojiString.repeat(25); // Reduced repetition
+    
+    for (let line = 0; line < 6; line++) {
+      const emojiLine = document.createElement('div');
+      emojiLine.className = 'emoji-line';
+      emojiLine.textContent = repeatedEmojis;
+      emojiLoop.appendChild(emojiLine);
+    }
+    
+    document.body.appendChild(emojiLoop);
+    
+    // Remove after lyric duration and clear reference
+    setTimeout(() => {
+      if (emojiLoop.parentNode) {
+        emojiLoop.remove();
+      }
+      if (currentEmojiBackground === emojiLoop) {
+        currentEmojiBackground = null;
+      }
+    }, duration);
+  }
+
+  function createCameraShake() {
+    const intensity = 15;
+    const duration = 800;
+    const startTime = performance.now();
+    
+    function shake(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = elapsed / duration;
+      
+      if (progress < 1) {
+        const shakeIntensity = intensity * (1 - progress);
+        const x = (Math.random() - 0.5) * shakeIntensity;
+        const y = (Math.random() - 0.5) * shakeIntensity;
+        
+        document.body.style.transform = `translate(${x}px, ${y}px)`;
+        requestAnimationFrame(shake);
+      } else {
+        document.body.style.transform = '';
+      }
+    }
+    requestAnimationFrame(shake);
+  }
+
+  function startParticleSystem() {
+    particleInterval = setInterval(() => {
+      createParticle();
+    }, 50);
+    
+    setTimeout(() => {
+      clearInterval(particleInterval);
+    }, 3000);
+  }
+
+  function createParticle() {
+    const particle = document.createElement('div');
+    particle.className = 'particle';
+    particle.style.left = Math.random() * window.innerWidth + 'px';
+    particle.style.top = Math.random() * window.innerHeight + 'px';
+    particle.style.opacity = Math.random();
+    
+    const colors = ['rgba(0,255,0,0.8)', 'rgba(255,255,255,0.6)', 'rgba(0,255,255,0.4)'];
+    particle.style.background = `radial-gradient(circle, ${colors[Math.floor(Math.random() * colors.length)]}, transparent)`;
+    
+    document.body.appendChild(particle);
+    
+    const duration = Math.random() * 2000 + 1000;
+    const startTime = performance.now();
+    
+    function animateParticle(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = elapsed / duration;
+      
+      if (progress < 1) {
+        const y = parseFloat(particle.style.top) + Math.sin(progress * Math.PI * 4) * 2;
+        const opacity = (1 - progress) * parseFloat(particle.style.opacity);
+        particle.style.top = y + 'px';
+        particle.style.opacity = opacity;
+        requestAnimationFrame(animateParticle);
+      } else {
+        particle.remove();
+      }
+    }
+    requestAnimationFrame(animateParticle);
+  }
+
+  function startFallingEmojis() {
+    if (fallingStarted) return;
+    fallingStarted = true;
+
+    fallingInterval = setInterval(() => {
+      const emoji = document.createElement('div');
+      const emojis = ['🧪', '💥', '🔥', '⚠️', '💔'];
+      emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      emoji.style.position = 'fixed';
+      emoji.style.fontSize = (Math.random() * 40 + 30) + 'px';
+      emoji.style.left = Math.random() * window.innerWidth + 'px';
+      emoji.style.top = '-60px';
+      emoji.style.opacity = '0.9';
+      emoji.style.transition = 'transform 5s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.8s ease-out';
+      emoji.style.willChange = 'transform, opacity';
+      emoji.style.pointerEvents = 'none';
+      emoji.style.filter = 'drop-shadow(0 0 15px rgba(0,255,0,0.7)) drop-shadow(0 0 30px rgba(0,255,0,0.3))';
+      emoji.style.zIndex = '10';
+      
+      const rotation = Math.random() * 720 - 360;
+      emoji.style.transform = `rotate(${rotation}deg)`;
+      
+      document.body.appendChild(emoji);
+
+      const driftX = (Math.random() - 0.5) * 200;
+      const fallY = window.innerHeight + 60;
+
+      requestAnimationFrame(() => {
+        emoji.style.transform = `translate(${driftX}px, ${fallY}px) rotate(${rotation + 360}deg)`;
+      });
+
+      setTimeout(() => {
+        emoji.style.opacity = '0';
+        setTimeout(() => emoji.remove(), 800);
+      }, 5000);
+    }, 150);
+  }
+
+  function stopFallingEmojis() {
+    clearInterval(fallingInterval);
+    fallingInterval = null;
+    fallingStarted = false;
+  }
+
+  function tick() {
+    const currentTime = audio.currentTime;
+
+    lyrics.forEach(lyric => {
+      if (!shown.has(lyric) && currentTime >= lyric.time) {
+        showLyric(lyric);
+        shown.add(lyric);
+
+        if (lyric.time === 18.0) {
+          startFallingEmojis();
+        }
+      }
+    });
+
+    if (!audio.paused && !audio.ended) {
+      rafId = requestAnimationFrame(tick);
+    } else {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  }
+
+  audio.addEventListener('play', () => {
+    if (!rafId) rafId = requestAnimationFrame(tick);
+    stage.classList.add('pulsing');
+  });
+
+  audio.addEventListener('pause', () => {
+    stage.classList.remove('pulsing');
+  });
+
+  audio.addEventListener('ended', () => {
+    shown.clear();
+    layer.querySelectorAll('.lyric').forEach(n => n.remove());
+    // Clear emoji background when audio ends
+    if (currentEmojiBackground && currentEmojiBackground.parentNode) {
+      currentEmojiBackground.remove();
+      currentEmojiBackground = null;
+    }
+    cancelAnimationFrame(rafId);
+    rafId = null;
+    stopFallingEmojis();
+    stage.classList.remove('pulsing');
+  });
+
+  // Autoplay on click
+  document.body.addEventListener('click', () => {
+    audio.play();
+  });
+</script>
+
+</body>
+</html>
