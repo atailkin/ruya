@@ -532,34 +532,38 @@
     return text;
   }
 
-  // Instagram/App close function
-  function attemptToClose() {
-    // Try multiple methods to close the window/app
-    try {
-      // Method 1: Standard window close
-      window.close();
-      
-      // Method 2: History back (for Instagram in-app browser)
-      setTimeout(() => {
-        window.history.back();
-      }, 100);
-      
-      // Method 3: Try to redirect to Instagram app (mobile)
-      setTimeout(() => {
-        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-          // Attempt to open Instagram app
-          window.location.href = 'instagram://';
-        }
-      }, 200);
-      
-      // Method 4: Last resort - blank page with no text
-      setTimeout(() => {
-        document.body.innerHTML = '<div style="background: black; color: white; text-align: center; padding-top: 50vh; font-family: Arial;"></div>';
-      }, 300);
-      
-    } catch (error) {
-      console.log('Auto-close not possible in this context');
+  // Website destruction function - replaces attemptToClose()
+  function destroyWebsite() {
+    // Stop all audio first
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = '';
     }
+    
+    // Clear all running animations and intervals
+    if (rafId) cancelAnimationFrame(rafId);
+    if (fallingInterval) clearInterval(fallingInterval);
+    if (particleInterval) clearInterval(particleInterval);
+    
+    // Clean up any remaining elements
+    if (currentEmojiBackground && currentEmojiBackground.parentNode) {
+      currentEmojiBackground.remove();
+    }
+    
+    // Replace entire page content with minimal black screen
+    document.body.innerHTML = '<div style="position:fixed;inset:0;background:#000;"></div>';
+    
+    // Disable all interactions
+    document.body.style.pointerEvents = 'none';
+    document.body.style.touchAction = 'none';
+    document.body.style.userSelect = 'none';
+    
+    // Prevent any future interactions
+    document.addEventListener('click', e => e.preventDefault(), true);
+    document.addEventListener('touchstart', e => e.preventDefault(), true);
+    document.addEventListener('touchend', e => e.preventDefault(), true);
+    document.addEventListener('keydown', e => e.preventDefault(), true);
   }
 
   function showLyric(lyric) {
@@ -762,12 +766,12 @@
       }, 5000);
     }, 150);
 
-    // Stop falling emojis after 12 seconds and then attempt to close
+    // Stop falling emojis after 12 seconds and then destroy website
     setTimeout(() => {
       stopFallingEmojis();
-      // Attempt to close shortly after emojis end
+      // Destroy website shortly after emojis end
       setTimeout(() => {
-        attemptToClose();
+        destroyWebsite();
       }, 1000);
     }, 12000);
   }
@@ -826,15 +830,15 @@
       if (timeLeft > 0) {
         setTimeout(() => {
           stopFallingEmojis();
-          attemptToClose();
+          destroyWebsite();
         }, timeLeft + 1000);
       } else {
         stopFallingEmojis();
-        attemptToClose();
+        destroyWebsite();
       }
     } else {
-      // If no falling emojis or they already ended, close immediately
-      attemptToClose();
+      // If no falling emojis or they already ended, destroy immediately
+      destroyWebsite();
     }
     
     stage.classList.remove('pulsing');
