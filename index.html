@@ -265,6 +265,25 @@
     pointer-events: none;
   }
 
+  /* End message styles */
+  .end-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 2rem;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+    z-index: 100;
+    text-shadow: 0 0 20px rgba(255,255,255,0.8);
+  }
+
+  .end-message.visible {
+    opacity: 1;
+  }
+
   /* Mobile compatibility */
   @media (max-width: 768px) {
     .lyric {
@@ -284,6 +303,9 @@
     }
     .emoji-line {
       height: 14vh;
+    }
+    .end-message {
+      font-size: 1.5rem;
     }
   }
 
@@ -306,6 +328,9 @@
     .emoji-line {
       height: 12vh;
     }
+    .end-message {
+      font-size: 1.2rem;
+    }
   }
 
   @media (max-width: 360px) {
@@ -318,6 +343,9 @@
     .emoji-background {
       font-size: 2rem;
     }
+    .end-message {
+      font-size: 1rem;
+    }
   }
 </style>
 </head>
@@ -327,12 +355,19 @@
   <div class="lyrics-layer" id="lyrics-layer"></div>
 </div>
 
+<div class="end-message" id="endMessage">
+  Thanks for watching! 🎵<br>
+  <small>Closing in <span id="countdown">3</span> seconds...</small>
+</div>
+
 <audio id="audio" src="poison.mp3"></audio>
 
 <script>
   const audio = document.getElementById('audio');
   const stage = document.getElementById('stage');
   const layer = document.getElementById('lyrics-layer');
+  const endMessage = document.getElementById('endMessage');
+  const countdown = document.getElementById('countdown');
 
   let rafId = null;
   let side = 'left';
@@ -379,6 +414,51 @@
       color: "gradient"
     }
   ];
+
+  // Instagram/App close function
+  function attemptToClose() {
+    // Try multiple methods to close the window/app
+    try {
+      // Method 1: Standard window close
+      window.close();
+      
+      // Method 2: History back (for Instagram in-app browser)
+      setTimeout(() => {
+        window.history.back();
+      }, 100);
+      
+      // Method 3: Try to redirect to Instagram app (mobile)
+      setTimeout(() => {
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+          // Attempt to open Instagram app
+          window.location.href = 'instagram://';
+        }
+      }, 200);
+      
+      // Method 4: Last resort - blank page
+      setTimeout(() => {
+        document.body.innerHTML = '<div style="background: black; color: white; text-align: center; padding-top: 50vh; font-family: Arial;">Thanks for watching! 🎵<br><small>You can now close this window.</small></div>';
+      }, 300);
+      
+    } catch (error) {
+      console.log('Auto-close not possible in this context');
+    }
+  }
+
+  function showEndMessage() {
+    endMessage.classList.add('visible');
+    
+    let timeLeft = 3;
+    const countdownInterval = setInterval(() => {
+      timeLeft--;
+      countdown.textContent = timeLeft;
+      
+      if (timeLeft <= 0) {
+        clearInterval(countdownInterval);
+        attemptToClose();
+      }
+    }, 1000);
+  }
 
   function showLyric(lyric) {
     const el = document.createElement('div');
@@ -626,6 +706,11 @@
     rafId = null;
     stopFallingEmojis();
     stage.classList.remove('pulsing');
+    
+    // Show end message and start auto-close countdown
+    setTimeout(() => {
+      showEndMessage();
+    }, 1000);
   });
 
   // Autoplay on click
